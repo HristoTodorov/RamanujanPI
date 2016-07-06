@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.CommandLine;
@@ -46,6 +47,7 @@ public class PiResult {
 			System.exit(0);
 		}
 
+		
 		int end = 0;
 		int residual = precision % tasks;
 		int batch = precision / tasks;
@@ -66,21 +68,23 @@ public class PiResult {
 		//limit the number of actual threads
 		int poolSize = tasks;
 		ExecutorService service = Executors.newFixedThreadPool(poolSize);
-		List<CompletableFuture<Void>> futures = new ArrayList<CompletableFuture<Void>>();
+		List<Future<?>> futures = new ArrayList<Future<?>>();
 		List<RamanujanPi> threads = new ArrayList<>();
 		
 		long startTime = System.currentTimeMillis();
 		for (int n = 0; n < tasks; n++) {
 			isEnd |= n + 1 == tasks;
 			int finalResidual = isEnd ? residual : 0;
-			RamanujanPi x = new RamanujanPi(end, end+=batch+finalResidual, isQueit);
-			CompletableFuture<Void> futureTask = CompletableFuture.runAsync(x, service);
+			RamanujanPi task = new RamanujanPi(end, end+=batch+finalResidual, isQueit);
+			Future<?> futureTask = service.submit(task);
 			futures.add(futureTask);
-			threads.add(x);
+			threads.add(task);
 		}
 
 		// wait for all tasks to complete before continuing
-		CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[futures.size()]));
+		for (Future<?> task : futures) {
+			task.get();
+		}
 		long endTime = System.currentTimeMillis();
 		
 		//Collect the result
