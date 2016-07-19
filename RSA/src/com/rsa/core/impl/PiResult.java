@@ -3,15 +3,12 @@ package com.rsa.core.impl;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -21,8 +18,9 @@ import org.apache.commons.cli.ParseException;
 
 import com.rsa.core.Commands;
 import com.rsa.core.CommandsHelper;
-import com.rsa.core.CommonConstants;
+import com.rsa.core.Result;
 import com.rsa.core.Statistics;
+import com.rsa.core.utils.CommonConstants;
 
 public class PiResult {
 	public static void main(String[] args) throws 
@@ -46,7 +44,6 @@ public class PiResult {
 			CommandsHelper.printHelp();
 			System.exit(0);
 		}
-
 		
 		int end = 0;
 		int residual = precision % tasks;
@@ -67,37 +64,25 @@ public class PiResult {
 
 		//limit the number of actual threads
 		int poolSize = tasks;
-		ExecutorService service = Executors.newFixedThreadPool(poolSize);
-		List<Future<?>> futures = new ArrayList<Future<?>>();
-		List<RamanujanPi> threads = new ArrayList<>();
-		
+		ExecutorService executor = Executors.newFixedThreadPool(poolSize);
+		List<Future<?>> threads = new LinkedList<>();
 		long startTime = System.currentTimeMillis();
 		for (int n = 0; n < tasks; n++) {
 			isEnd |= n + 1 == tasks;
 			int finalResidual = isEnd ? residual : 0;
-			RamanujanPi task = new RamanujanPi(end, end+=batch+finalResidual, isQueit);
-			Future<?> futureTask = service.submit(task);
-			futures.add(futureTask);
-			threads.add(task);
+			Future<?> futureTask = executor.submit(new RamanujanPi(
+					end, end+=batch+finalResidual, isQueit));
+			threads.add(futureTask);
 		}
-
-		// wait for all tasks to complete before continuing
-		for (Future<?> task : futures) {
-			task.get();
-		}
-		long endTime = System.currentTimeMillis();
 		
-		//Collect the result
-		List<BigDecimal> results = threads.stream().parallel().map(
-				x -> x.getResult()).collect(Collectors.toList());
-		BigDecimal result = new BigDecimal(0);
-		for (Iterator<BigDecimal> iterator = results.iterator(); iterator.hasNext();) {
-			result = result.add(iterator.next());
+		for (Future<?> future : threads) {
+			future.get();
 		}
+		BigDecimal result = Result.get();
 		result = result.multiply(CommonConstants.FINAL_RESIDUAL);
-		result = BigDecimal.valueOf(4).divide(result, 
-				CommonConstants.PRECISION, CommonConstants.MODE);
-
+ 		result = BigDecimal.valueOf(4).divide(result, 
+ 				CommonConstants.PRECISION, CommonConstants.MODE);
+		long endTime = System.currentTimeMillis();
 		StringBuilder sb = new StringBuilder();
 		sb.append("The sum is: ");
 		sb.append(result);
@@ -106,9 +91,9 @@ public class PiResult {
 		} else {
 			Statistics.writeMessage(file, sb);
 		}
-
+		System.out.println("The result is: " + result);
 		//shut down the executor service so that this thread can exit
-		service.shutdownNow();
+		executor.shutdownNow();
 		System.exit(0);
 	}
 }

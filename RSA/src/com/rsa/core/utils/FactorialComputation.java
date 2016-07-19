@@ -1,4 +1,4 @@
-package com.rsa.core;
+package com.rsa.core.utils;
 
 import java.math.BigInteger;
 import java.util.function.Function;

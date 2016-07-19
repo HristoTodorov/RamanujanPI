@@ -1,4 +1,4 @@
-package com.rsa.core;
+package com.rsa.core.utils;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;

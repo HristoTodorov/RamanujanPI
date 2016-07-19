@@ -1,4 +1,4 @@
-package com.rsa.core;
+package com.rsa.core.utils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -8,8 +8,8 @@ public class CommonConstants {
 	/** The mode. */
 	public static final RoundingMode MODE = RoundingMode.HALF_EVEN;
 
-	/** The precision accurance for dividing operations. */
-	public static final int PRECISION = 50;
+	/** The precision accurate for dividing operations. */
+	public static final int PRECISION = 20;
 
 	/** The final residual for Pi Ramanujan 2 formula. */
 	public static final BigDecimal FINAL_RESIDUAL = BigDecimal.valueOf(1).
